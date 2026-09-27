@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Be My Girlfriend? 💌</title>
   <!-- EmailJS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -18,6 +18,9 @@
       --rose-dark: #7a0019;
       --gold:      #d4a04a;
       --text-main: #3b0010;
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -139,7 +142,7 @@
     ══════════════════════════════════════════════════════ */
     #noBtn {
       position: fixed;
-      bottom: 40px;
+      bottom: calc(40px + env(safe-area-inset-bottom, 0px));
       left: 50%;
       transform: translateX(-50%);
       z-index: 99999;
@@ -322,21 +325,22 @@
   const question = document.getElementById('question');
   const mainImage= document.getElementById('mainImage');
 
-  let clickCount  = 0;
-  let runawayMode = false;
+  let clickCount   = 0;
+  let runawayMode  = false;
+  let runawayTimer = null;
 
   /* Move No button to a random spot, always fully inside viewport */
   function moveNoBtn() {
     const bw = noBtn.offsetWidth  || 80;
     const bh = noBtn.offsetHeight || 40;
     noBtn.style.left      = (10 + Math.random() * (window.innerWidth  - bw - 20)) + 'px';
-    noBtn.style.top       = (10 + Math.random() * (window.innerHeight - bh - 20)) + 'px';
+    noBtn.style.top       = (10 + Math.random() * (window.innerHeight - bh - 40)) + 'px';
     noBtn.style.bottom    = 'auto';
     noBtn.style.transform = 'none'; /* clear the translateX(-50%) once runaway starts */
   }
 
-  noBtn.addEventListener('click', () => {
-    if (runawayMode) return;
+  noBtn.addEventListener('click', (e) => {
+    if (runawayMode) { e.preventDefault(); return; }
 
     if (clickCount < noTexts.length - 1) {
       clickCount++;
@@ -352,13 +356,24 @@
       runawayMode = true;
       noBtn.textContent = "No";
       moveNoBtn();
+      // Phones don't have "hover", so keep it jumping on its own timer too —
+      // this is what makes it un-catchable on a touchscreen, not just a mouse.
+      runawayTimer = setInterval(moveNoBtn, 650);
     }
   });
 
-  /* Runs away on hover */
+  /* Desktop: jumps the instant the cursor gets near it */
   noBtn.addEventListener('mouseover', () => {
     if (runawayMode) moveNoBtn();
   });
+
+  /* Mobile: jumps the instant a tap begins, before the tap can land on it */
+  noBtn.addEventListener('touchstart', (e) => {
+    if (runawayMode) {
+      e.preventDefault();
+      moveNoBtn();
+    }
+  }, { passive: false });
 
   /* Yes clicked */
   yesBtn.addEventListener('click', () => {
